@@ -216,8 +216,8 @@ while running:
             while correct_answer is None:
                 accidentals = ["flat", "none", "sharp"]
 
-                note_1_scale = 0 # random.randint(-5, 5)
-                note_2_scale = 0 # random.randint(-5, 5)
+                note_1_scale = random.randint(-5, 5)
+                note_2_scale = random.randint(-5, 5)
                 first_note_accidental = random.choice(accidentals)
                 second_note_accidental = random.choice(accidentals)
                 correct_answer = check_answer(clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental)
