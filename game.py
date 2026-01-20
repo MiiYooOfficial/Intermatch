@@ -277,7 +277,7 @@ while running:
                             new_quality_selection = True
                             quality_selected = True
 
-                    if new_quality_selection:
+                    if quality_selected and new_quality_selection:
                         new_quality_selection = False
                         quality_buttons_image = pygame.image.load("buttons\\quality_buttons\\" + quality_answer + "_highlighted.png")
 
@@ -323,7 +323,7 @@ while running:
                             new_number_selection = True
                             number_selected = True
 
-                    if new_number_selection:
+                    if number_selected and new_number_selection:
                         new_number_selection = False
                         number_buttons_image = pygame.image.load("buttons\\number_buttons\\" + number_answer + "_highlighted.png")
 
