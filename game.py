@@ -56,7 +56,7 @@ def check_answer(clef, note_1_scale, note_2_scale, note_1_accidental, note_2_acc
     if interval_number == 1:
         if bottom_note_accidental == top_note_accidental:
             interval_quality = "perfect"
-        elif (bottom_note_accidental == "natural" and top_note_accidental == "sharp") or (bottom_note_accidental == "sharp" and top_note_accidental == "natural") or (bottom_note_accidental == "flat" and top_note_accidental == "natural") or (bottom_note_accidental == "natural" and top_note_accidental == "flat"):
+        elif (bottom_note_accidental == "none" and top_note_accidental == "sharp") or (bottom_note_accidental == "sharp" and top_note_accidental == "none") or (bottom_note_accidental == "flat" and top_note_accidental == "none") or (bottom_note_accidental == "none" and top_note_accidental == "flat"):
             interval_quality = "augmented"
     else:
         bare_bottom_note = base_notes[bottom_note_index]
@@ -214,13 +214,16 @@ while running:
 
             correct_answer = None
             while correct_answer is None:
-                accidentals = ["flat", "natural", "sharp"]
+                accidentals = ["flat", "none", "sharp"]
 
-                note_1_scale = random.randint(-5, 5)
-                note_2_scale = random.randint(-5, 5)
+                note_1_scale = 0 # random.randint(-5, 5)
+                note_2_scale = 0 # random.randint(-5, 5)
                 first_note_accidental = random.choice(accidentals)
                 second_note_accidental = random.choice(accidentals)
                 correct_answer = check_answer(clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental)
+
+                if note_1_scale == note_2_scale and first_note_accidental != "none" and second_note_accidental == "none":
+                    second_note_accidental = "natural"
             
             colors = ["blue", "yellow", "red", "green"]
             first_note = pygame.image.load("first_notes\\" + clef + "_clef\\" + first_note_accidental  + "\\" + random.choice(colors) + ".png").convert_alpha()

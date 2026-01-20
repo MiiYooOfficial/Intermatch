@@ -15,7 +15,7 @@ class first_note_generator(Scene):
 class second_note_generator(Scene):
     def construct(self):
         staff = Staff(clefs="g", width=3).scale(0.5)
-        note = Note(staff, "sB#", 0.8).set_color(YELLOW)
+        note = Note(staff, "sBn", 0.8).set_color(BLUE)
         self.add(note)
 
 class quality_buttons(Scene):
