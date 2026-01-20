@@ -1,0 +1,32 @@
+#!/bin/bash
+
+file="${1}"
+start="${2}"
+end="${3}"
+duration="${4:-2}" # Default: 2
+size="${5:-4}"     # Default: 4
+DIR="${6:-notes}"  # Default: "notes"
+
+echo "file:     ${file}"
+echo "start at: ${start}"
+echo "end at:   ${end} (notes)"
+echo "duration: ${duration}s per note"
+echo "size:     ${size}s to next note"
+echo "DIR:      ${DIR}"
+
+if [ -d "$DIR" ];
+then
+  echo "$DIR directory exists, removing"
+  rm -rf "${DIR}"
+  mkdir "${DIR}"
+else
+  echo "$DIR directory does not exist, creating folder".
+  mkdir "${DIR}"
+fi
+
+for ((i=start;i<=end;i++));do
+  i_fixed=$((i * size))
+  echo "ffmpeg -ss ${i_fixed}.03 -t ${duration} -i ${file} -c:a copy ${DIR}/${i}.mp3"
+  ffmpeg -hide_banner -loglevel error \
+    -ss "${i_fixed}.03" -t "${duration}" -i "${file}" -c:a copy "${DIR}/${i}.mp3"
+done
