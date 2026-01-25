@@ -9,7 +9,114 @@ NUMBER_BUTTONS_POS = (740, 660)
 PITCH_SCALING_FACTOR = 8.5
 TIME = 60
 
+# answer object
+class Answer:
+    def __init__(self, correct_answer, clef, note_1_scale, note_2_scale, note_1_accidental, note_2_accidental, interval_quality, interval_number, time_taken):
+        self.correct_answer = correct_answer
+        self.clef = clef
+        self.note_1_scale = note_1_scale
+        self.note_2_scale = note_2_scale
+        self.note_1_accidental = note_1_accidental
+        self.note_2_accidental = note_2_accidental
+        self.interval_quality = interval_quality
+        self.interval_number = interval_number
+        self.compound = abs(note_1_scale - note_2_scale) > 7
+        self.time_taken = time_taken
+
+    def __repr__(self):
+        return f"Answer(correct_answer={self.correct_answer}, clef={self.clef}, note_1_scale={self.note_1_scale}, note_2_scale={self.note_2_scale}, note_1_accidental={self.note_1_accidental}, note_2_accidental={self.note_2_accidental}, interval_quality={self.interval_quality}, interval_number={self.interval_number}, time_taken={self.time_taken})"
+
 # helper functions
+def generate_question(answers):
+    clefs = []
+    intervals = []
+    for answer in answers:
+        if answer.correct_answer == False or answer.time_taken > 5:
+            clefs.append(answer.clef)
+            intervals.append((answer.interval_quality, answer.interval_number, answer.compound))
+
+    clef = random.choice(clefs) if clefs != [] else random.choice(["g", "c", "f"])
+    note_1_scale, note_2_scale, first_note_accidental, second_note_accidental = build_interval(clef, random.choice(intervals)) if intervals != [] else (random.randint(-5, 5), random.randint(-5, 5), random.choice(["flat", "none", "sharp"]), random.choice(["flat", "none", "sharp"]))
+
+    return clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental
+
+def build_interval(clef, interval):
+    # generate base notes
+    note_1_scale = random.randint(-5, 5)
+    note_2_scale = note_1_scale + interval[1] - 1 if note_1_scale < 0 else note_1_scale - (interval[1] - 1)
+    if interval[2]: # compound interval
+        if note_1_scale < note_2_scale:
+            if note_2_scale + 7 <= 5:
+                note_2_scale += 7
+            else:
+                note_1_scale -= 7
+        else:
+            if note_2_scale - 7 >= -5:
+                note_2_scale -= 7
+            else:
+                note_1_scale += 7
+
+    interval_quality, interval_number = find_answer(clef, note_1_scale, note_2_scale, "none", "none")
+
+    # add accidentals according to desired quality
+    note_1_accidental, note_2_accidental = "none", "none"
+    if interval_number in [1, 4, 5, 8]:
+        interval_qualities = ["diminished", "perfect", "augmented"]
+        delta_quality = interval_qualities.index(interval[0]) - interval_qualities.index(interval_quality)
+        if delta_quality == -2:
+            if note_1_scale < note_2_scale:
+                note_1_accidental = "sharp"
+                note_2_accidental = "flat"
+            else:
+                note_1_accidental = "flat"
+                note_2_accidental = "sharp"
+        elif delta_quality == -1:
+            if note_1_scale < note_2_scale:
+                note_1_accidental = "sharp"
+            else:
+                note_1_accidental = "flat"
+        elif delta_quality == 1:
+            if note_1_scale < note_2_scale:
+                note_2_accidental = "sharp"
+            else:
+                note_2_accidental = "flat"
+        elif delta_quality == 2:
+            if note_1_scale < note_2_scale:
+                note_1_accidental = "flat"
+                note_2_accidental = "sharp"
+            else:
+                note_1_accidental = "sharp"
+                note_2_accidental = "flat"
+    else:
+        interval_qualities = ["diminished", "minor", "major", "augmented"]
+        delta_quality = interval_qualities.index(interval[0]) - interval_qualities.index(interval_quality)
+        if delta_quality == -2:
+            if note_1_scale < note_2_scale:
+                note_1_accidental = "sharp"
+                note_2_accidental = "flat"
+            else:
+                note_1_accidental = "flat"
+                note_2_accidental = "sharp"
+        elif delta_quality == -1:
+            if note_1_scale < note_2_scale:
+                note_2_accidental = "flat"
+            else:
+                note_2_accidental = "sharp"
+        elif delta_quality == 1:
+            if note_1_scale < note_2_scale:
+                note_2_accidental = "sharp"
+            else:
+                note_2_accidental = "flat"
+        elif delta_quality == 2:
+            if note_1_scale < note_2_scale:
+                note_1_accidental = "flat"
+                note_2_accidental = "sharp"
+            else:
+                note_1_accidental = "sharp"
+                note_2_accidental = "flat"
+
+    return note_1_scale, note_2_scale, note_1_accidental, note_2_accidental
+    
 def generate_basic_major_scale(tonic):
     match tonic:
         case "C":
@@ -27,7 +134,7 @@ def generate_basic_major_scale(tonic):
         case "B":
             return ["B", "C#", "D#", "E", "F#", "G#", "A#", "B"]
 
-def check_answer(clef, note_1_scale, note_2_scale, note_1_accidental, note_2_accidental):
+def find_answer(clef, note_1_scale, note_2_scale, note_1_accidental, note_2_accidental):
     base_notes = ["C", "D", "E", "F", "G", "A", "B"]
     
     # determine interval number
@@ -163,16 +270,18 @@ pygame.time.set_timer(pygame.USEREVENT, 1000)
 font = pygame.font.SysFont('Consolas', 30)
 
 running = True
-start_page, ending_page = True, False
+start_page, end_page = True, False
 quality_selected, number_selected, new_quality_selection, new_number_selection, quality_answer, number_answer = True, True, True, True, "", ""
 quality_buttons_image, number_buttons_image = pygame.image.load("buttons\\quality_buttons\\default.png"), pygame.image.load("buttons\\number_buttons\\default.png")
 fade_alpha = 0
+new_answers = []
+old_answers = []
 while running:
     screen.fill((0, 0, 0))
 
     while start_page:
-        starting_text = font.render("Click anywhere to begin", True, (255, 255, 255))
-        screen.blit(starting_text, starting_text.get_rect(center = (DISPLAY[0] / 2, DISPLAY[1] / 2)))
+        text = font.render("Click anywhere to begin", True, (255, 255, 255))
+        screen.blit(text, text.get_rect(center = (DISPLAY[0] / 2, DISPLAY[1] / 2)))
         pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -181,19 +290,23 @@ while running:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 start_page = False
 
-    while ending_page:
-        ending_text = font.render("Click anywhere to play again", True, (255, 255, 255))
-        screen.blit(ending_text, ending_text.get_rect(center = (DISPLAY[0] / 2, DISPLAY[1] / 2)))
+    while end_page:
+        text = font.render("Click anywhere to play again", True, (255, 255, 255))
+        screen.blit(text, text.get_rect(center = (DISPLAY[0] / 2, DISPLAY[1] / 2)))
         pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                ending_page = False
+                end_page = False
+                for answer in new_answers:
+                    print(answer) # debugging
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                ending_page = False
+                end_page = False
                 counter, text = TIME, str(TIME).rjust(3)
                 quality_buttons_image, number_buttons_image = pygame.image.load("buttons\\quality_buttons\\default.png"), pygame.image.load("buttons\\number_buttons\\default.png")
                 quality_selected, number_selected = True, True
+                old_answers = new_answers
+                new_answers = []
 
     if running:
         # populate buttons
@@ -204,30 +317,20 @@ while running:
             fade_alpha = 0
             quality_selected, number_selected, quality_answer, number_answer = False, False, "", ""
             quality_buttons_image, number_buttons_image = pygame.image.load("buttons\\quality_buttons\\default.png"), pygame.image.load("buttons\\number_buttons\\default.png")
-
-            # generate new question
             question_position = (random.randint(110, 690), random.randint(100, 390))
-            
-            clef = random.choice(["g", "c", "f"])
-            clef_image = "clefs\\" + clef + "_clef.png"
-            staff = pygame.image.load(clef_image).convert_alpha()
 
             correct_answer = None
             while correct_answer is None:
-                accidentals = ["flat", "none", "sharp"]
-
-                note_1_scale = random.randint(-5, 5)
-                note_2_scale = random.randint(-5, 5)
-                first_note_accidental = random.choice(accidentals)
-                second_note_accidental = random.choice(accidentals)
-                correct_answer = check_answer(clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental)
+                clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental = generate_question(old_answers)
+                correct_answer = find_answer(clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental)
 
                 if note_1_scale == note_2_scale and first_note_accidental != "none" and second_note_accidental == "none":
                     second_note_accidental = "natural"
             
-            colors = ["blue", "yellow", "red", "green"]
-            first_note = pygame.image.load("first_notes\\" + clef + "_clef\\" + first_note_accidental  + "\\" + random.choice(colors) + ".png").convert_alpha()
-            second_note = pygame.image.load("second_notes\\" + clef + "_clef\\" + second_note_accidental + "\\" + random.choice(colors) + ".png").convert_alpha()
+            staff = pygame.image.load("clefs\\" + clef + "_clef.png").convert_alpha()
+            first_note = pygame.image.load("first_notes\\" + clef + "_clef\\" + first_note_accidental  + "\\" + random.choice(["blue", "yellow", "red", "green"]) + ".png").convert_alpha()
+            second_note = pygame.image.load("second_notes\\" + clef + "_clef\\" + second_note_accidental + "\\" + random.choice(["blue", "yellow", "red", "green"]) + ".png").convert_alpha()
+            start_time = time.time()
 
         # display question
         question = pygame.Surface(DISPLAY, pygame.SRCALPHA)
@@ -330,16 +433,21 @@ while running:
             screen.blit(quality_buttons_image, quality_buttons_image.get_rect(center=QUALITY_BUTTONS_POS))
             screen.blit(number_buttons_image, number_buttons_image.get_rect(center=NUMBER_BUTTONS_POS))
 
-        # check answer
+        # process answer
         if running and quality_answer and number_answer:
+            end_time = time.time()
+            time_taken = end_time - start_time
+
             if (quality_answer, int(number_answer)) == correct_answer:
-                print("Correct!")
+                print("Correct!") # debugging
+                new_answers.append(Answer(True, clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental, correct_answer[0], correct_answer[1], time_taken))
             else:
-                print("Incorrect! The correct answer was:", correct_answer[0], correct_answer[1])
+                print("Incorrect! The correct answer was:", correct_answer[0], correct_answer[1]) # debugging
+                new_answers.append(Answer(False, clef, note_1_scale, note_2_scale, first_note_accidental, second_note_accidental, correct_answer[0], correct_answer[1], time_taken))
 
         text = str(counter).rjust(3)
         if counter == 0:
-            ending_page = True
+            end_page = True
 
         screen.blit(font.render(text, True, (255, 255, 255)), (32, 48))
         clock.tick(60)
