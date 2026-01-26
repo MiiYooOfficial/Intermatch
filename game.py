@@ -42,19 +42,24 @@ def generate_question(answers):
 
 def build_interval(clef, interval):
     # generate base notes
-    note_1_scale = random.randint(-5, 5)
-    note_2_scale = note_1_scale + interval[1] - 1 if note_1_scale < 0 else note_1_scale - (interval[1] - 1)
-    if interval[2]: # compound interval
-        if note_1_scale < note_2_scale:
-            if note_2_scale + 7 <= 5:
-                note_2_scale += 7
+    base_notes_generated = False
+    while not base_notes_generated:
+        note_1_scale = random.randint(-5, 5)
+        note_2_scale = note_1_scale + interval[1] - 1 if note_1_scale < 0 else note_1_scale - (interval[1] - 1)
+        if interval[2]: # compound interval
+            if note_1_scale < note_2_scale:
+                if note_2_scale + 7 <= 5:
+                    note_2_scale += 7
+                else:
+                    note_1_scale -= 7
             else:
-                note_1_scale -= 7
-        else:
-            if note_2_scale - 7 >= -5:
-                note_2_scale -= 7
-            else:
-                note_1_scale += 7
+                if note_2_scale - 7 >= -5:
+                    note_2_scale -= 7
+                else:
+                    note_1_scale += 7
+
+        if -5 <= note_1_scale <= 5 and -5 <= note_2_scale <= 5:
+            base_notes_generated = True
 
     interval_quality, interval_number = find_answer(clef, note_1_scale, note_2_scale, "none", "none")
 
@@ -148,8 +153,7 @@ def find_answer(clef, note_1_scale, note_2_scale, note_1_accidental, note_2_acci
     note_2_index = (note_2_scale + middle_note_index) % 7 if note_2_scale + middle_note_index >= 0 else - (abs(note_2_scale + middle_note_index) % 7)
 
     bottom_note_index, top_note_index, bottom_note_accidental, top_note_accidental = (note_1_index, note_2_index, note_1_accidental, note_2_accidental) if note_1_scale <= note_2_scale else (note_2_index, note_1_index, note_2_accidental, note_1_accidental)
-        
-    print(base_notes[bottom_note_index] + bottom_note_accidental, base_notes[top_note_index] + top_note_accidental) # debugging
+
     if note_1_scale == note_2_scale:
         interval_number = 1
     else:
@@ -267,7 +271,7 @@ clock = pygame.time.Clock()
 
 counter, text = TIME, str(TIME).rjust(3)
 pygame.time.set_timer(pygame.USEREVENT, 1000)
-font = pygame.font.SysFont('Consolas', 30)
+font = pygame.font.SysFont("Verdana", 30, bold=False)
 
 running = True
 start_page, end_page = True, False
@@ -283,6 +287,7 @@ while running:
         text = font.render("Click anywhere to begin", True, (255, 255, 255))
         screen.blit(text, text.get_rect(center = (DISPLAY[0] / 2, DISPLAY[1] / 2)))
         pygame.display.flip()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -291,9 +296,20 @@ while running:
                 start_page = False
 
     while end_page:
-        text = font.render("Click anywhere to play again", True, (255, 255, 255))
-        screen.blit(text, text.get_rect(center = (DISPLAY[0] / 2, DISPLAY[1] / 2)))
+        questions_answered = len(new_answers)
+        correct_answers = sum(1 for answer in new_answers if answer.correct_answer)
+        average_time = sum(answer.time_taken for answer in new_answers) / questions_answered if questions_answered > 0 else 0
+
+        lines = ["Great work!", "", f"You answered {questions_answered} questions, and got {correct_answers} correct!", "", f"You took an average time of {round(average_time, 2)} seconds per question"]
+        line_surfaces = [font.render(line, True, (255, 255, 255)) for line in lines]
+        total_height = sum(surf.get_height() for surf in line_surfaces)
+        start_y = DISPLAY[1] / 2 - total_height / 2
+        for surface in line_surfaces:
+            rect = surface.get_rect(centerx=DISPLAY[0] / 2, y=start_y)
+            screen.blit(surface, rect)
+            start_y += surface.get_height()
         pygame.display.flip()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
